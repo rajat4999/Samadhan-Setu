@@ -1,5 +1,6 @@
-const {jwtAuthMiddleware,generateToken}=require('./../jwt');
+const {jwtAuthMiddleware,generateToken}=require('./../middleware/jwt');
 const student= require('./../models/student');
+const Otp= require('./../models/otp');
 const sendEmail=require('./../services/emailService');
 const express=require('express');
 const crypto=require('crypto');
@@ -10,6 +11,25 @@ const AuthService = require('../services/authService');
 router.post('/signup',async(req,res)=>{
   try{
     const userData=req.body;
+
+    const providedOtp = userData.otp; // The frontend will now send the OTP along with the data!
+
+    if (!providedOtp) {
+      return res.status(400).json({ error: "OTP is required to create an account." });
+    }
+
+    // 1. Hash the provided OTP to compare it with the database
+    const hashedOtp = crypto.createHash('sha256').update(providedOtp).digest('hex');
+
+    // 2. Find the OTP record
+    const validOtpRecord = await Otp.findOne({ 
+      email: userData.email, 
+      otp: hashedOtp 
+    });
+
+    if (!validOtpRecord) {
+      return res.status(400).json({ error: "Invalid or expired OTP." });
+    }
 
     if (userData.role === 'Caretaker') {
         
@@ -30,6 +50,7 @@ router.post('/signup',async(req,res)=>{
 
     const user=new student(userData);
     const response=await user.save();
+    await Otp.deleteOne({ email: userData.email });
 
     // email notification
     
@@ -63,6 +84,63 @@ router.post('/signup',async(req,res)=>{
     console.log(err);
     res.status(500).json({error:err});
   }
+});
+
+
+
+
+// sending signup otp
+
+router.post('/send-signup-otp', async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        // 1. Domain Lock: Only allow college emails (Change this to your actual college domain!)
+        // if (!email.endsWith("@mnnit.ac.in")) {
+        //     return res.status(403).json({ error: "You must use your official college email (@mnnit.ac.in)." });
+        // }
+
+        // 2. Check if user already exists
+        const existingUser = await student.findOne({ email });
+        if (existingUser) {
+            return res.status(400).json({ error: "An account with this email already exists." });
+        }
+
+        const existingOtpRecord = await Otp.findOne({ email });
+        if (existingOtpRecord) {
+            // Calculate how many seconds ago the last OTP was sent
+            const secondsSinceLastOtp = (Date.now() - existingOtpRecord.createdAt.getTime()) / 1000;
+            
+            if (secondsSinceLastOtp < 60) {
+                return res.status(429).json({ 
+                    error: `Please wait ${Math.ceil(60 - secondsSinceLastOtp)} seconds before requesting a new code.` 
+                });
+            }
+        }
+
+        // 3. Generate a 6-digit OTP and hash it for secure storage
+        const plainOtp = crypto.randomInt(100000, 1000000).toString();  
+        const hashedOtp = crypto.createHash('sha256').update(plainOtp).digest('hex');
+
+        // 4. Save to OTP collection (Update if they requested one recently)
+        await Otp.findOneAndUpdate(
+            { email },
+            { email, otp: hashedOtp ,createdAt: Date.now()},
+            { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+
+        // 5. Send Email
+        const subject = "Verify Your Hostel App Account";
+        const message = `Welcome!\n\nYour account verification code is: ${plainOtp}\n\nThis code will expire in 10 minutes.`;
+        
+        await sendEmail(email, subject, message);
+
+        res.status(200).json({ message: "OTP sent successfully!" });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Failed to send OTP. Please try again." });
+    }
 });
 
 

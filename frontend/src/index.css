@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+/* Glassmorphism Effect for Modals */
+.glass-modal {
+  background: rgba(255, 255, 255, 0.95); /* Slightly transparent white */
+  backdrop-filter: blur(10px);            /* The blur magic */
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* The Dark Overlay behind the modal */
+.modal-overlay {
+  background-color: rgba(0, 0, 0, 0.6);   /* Darkens the background */
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

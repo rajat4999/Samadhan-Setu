@@ -2,6 +2,9 @@ const express= require('express');
 const mongoose=require('mongoose');
 // const { validate } = require('../../../projects/demo/models/Person');
 const bcrypt=require('bcrypt');
+const crypto=require('crypto');
+
+
 const studentSchema=new mongoose.Schema({
   email:{
     type: String,
@@ -16,6 +19,7 @@ const studentSchema=new mongoose.Schema({
   regNo:{
     type: String,
     unique:true,
+    sparse:true,
     required:function(){return this.role=='Student'}
 
   },
@@ -48,7 +52,11 @@ const studentSchema=new mongoose.Schema({
     enum:['Student','Caretaker'],
     default:'Student',
     required:true
-  }
+  },
+
+  resetOtp: String,
+  resetOtpExpire: Date,
+  lastOtpSentAt: Date
 });
 
 
@@ -75,6 +83,16 @@ studentSchema.methods.comparePassword=async function(password){
     throw err;
   }
 }
+
+
+studentSchema.methods.generateOTP = function() {
+  const otp = crypto.randomInt(100000, 1000000).toString();
+  this.resetOtp = crypto.createHash('sha256').update(otp).digest('hex');
+  this.resetOtpExpire = Date.now() + 10 * 60 * 1000;
+  this.lastOtpSentAt = Date.now();
+  return otp;
+};
+
 
 
 

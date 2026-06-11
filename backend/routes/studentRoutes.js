@@ -6,21 +6,38 @@ const express=require('express');
 const router=express.Router();
 const {jwtAuthMiddleware,generateToken}=require('./../jwt');
 const checkStudent=require('./../middleware/checkStudent');
+const { uploadToCloudinary } = require('../config/cloudinary');
+const upload = require('../middleware/upload');
 
 // post a complaint by student
-router.post('/file',jwtAuthMiddleware,checkStudent,async (req,res)=>{
+router.post('/file',jwtAuthMiddleware,checkStudent, async (req,res)=>{
   const id=req.user.id;
+  
+
+
+
   try{
+    let imageUrl=null;
+    if(req.body.imageBase64){
+      imageUrl = await uploadToCloudinary(req.body.imageBase64,'image');
+    }
     const user=await student.findById(id);
     const data={
       student:id,
       ...req.body,
-      hostel:user.hostel
+      hostel:user.hostel,
+      image:imageUrl
     }
+
+
+
+
+
     const newComplaint=new complaint(data);
     const response=await newComplaint.save();
     console.log("complaint register successfully");
-
+    console.log(imageUrl);
+    
 
      try{
       // email notification
@@ -55,7 +72,8 @@ router.get('/view',jwtAuthMiddleware,checkStudent,async (req,res)=>{
         {student:id},
         {isCommon:true}
       ]
-    }).sort({createdAt:-1});
+    }).populate('worker')
+    .sort({createdAt:-1});
 
     res.status(200).json(comps);
 
@@ -73,11 +91,10 @@ router.put('/profile/update',jwtAuthMiddleware,checkStudent,async(req,res)=>{
     const id=req.user.id;
     const user=await student.findById(id);
     if(!user) return res.status(404).json({error:"token not found"});
-    const {room,hostel,mobNo,newPassword}=req.body;
+    const {room,hostel,mobNo}=req.body;
     if(room) user.room=room;
     if(hostel) user.hostel=hostel;
     if(mobNo) user.mobNo=mobNo;
-    if(newPassword) user.password=newPassword;
     const response=await user.save();
     console.log("profile updated");
     res.send(response);
@@ -159,6 +176,17 @@ router.get('/notices',jwtAuthMiddleware,checkStudent,async (req,res)=>{
   catch(err){
     res.status(500).json({error:"server error"});
   }
+});
+
+// get profile
+router.get('/profile', jwtAuthMiddleware, checkStudent, async (req, res) => {
+    try {
+        const user = await student.findById(req.user.id).select('-password');
+        if (!user) return res.status(404).json({ error: "User not found" });
+        res.json(user);
+    } catch (err) {
+        res.status(500).json({ error: "Server error" });
+    }
 });
 
 

@@ -6,11 +6,17 @@ const StudentController=require('./../controllers/studentController');
 
 
 router.use(jwtAuthMiddleware, checkStudent);
+
+// complaints
 router.post('/file', StudentController.fileComplaint);
 router.get('/view', StudentController.getStudentComplaints);
-router.put('/profile/update', StudentController.updateProfile);
 router.patch('/:compId/reopen', StudentController.reopenComplaint);
+
+// notices
 router.get('/notices', StudentController.viewNotices);
+
+// profile
 router.get('/profile', StudentController.getProfile);
+router.put('/profile/update', StudentController.updateProfile);
 
 module.exports=router;

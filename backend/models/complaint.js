@@ -40,20 +40,6 @@ const complaintSchema=new mongoose.Schema({
     type:String,
     required:true
   },
-  // workerName:{
-  //   type:String
-  // },
-  // workerMob:{
-  //   type:String,
-  //   validate:{
-  //     validator: (v)=>{
-  //       return /^[6-9]\d{9}$/.test(v);
-  //     },
-  //     message: props=>`${props.value} is not a valid number`
-  //   }
-  // },
-
-  // Inside your Complaint Schema
   worker: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'worker' 

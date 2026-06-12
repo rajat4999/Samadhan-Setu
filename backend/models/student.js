@@ -1,6 +1,5 @@
 const express= require('express');
 const mongoose=require('mongoose');
-// const { validate } = require('../../../projects/demo/models/Person');
 const bcrypt=require('bcrypt');
 const crypto=require('crypto');
 

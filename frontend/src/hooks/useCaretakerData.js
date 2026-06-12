@@ -58,7 +58,7 @@ export const useCaretakerData = () => {
   
   const assignWorker = async (complaintId, workerId) => {
     try {
-      await api.patch(`/caretaker/${complaintId}/assign`, { workId: workerId });
+      await api.patch(`/caretaker/${complaintId}/assign`, { workerId: workerId });
       toast.success("Worker Assigned Successfully");
       fetchDashboardData();
     } catch (err) {
